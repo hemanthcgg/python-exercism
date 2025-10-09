@@ -2,7 +2,7 @@ name: Auto Merge Exercism Syncer PRs
 
 on:
   schedule:
-    # Runs every day at 23:00 UTC (adjust as needed)
+    # Runs every day at 23:00 UTC (adjust if needed)
     - cron: "0 23 * * *"
   workflow_dispatch:
 
@@ -18,12 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GitHub CLI
+      - name: Install GitHub CLI and jq
         run: |
           sudo apt-get update
           sudo apt-get install -y gh jq
 
-      - name: Auto-merge PRs created by exercism-solutions-syncer bot
+      - name: Auto-merge safe Exercism Syncer PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -36,6 +36,13 @@ jobs:
           fi
 
           for pr in $prs; do
+            echo "Checking PR #$pr for workflow file changes..."
+            changed_files=$(gh pr view $pr --json files --jq '.files[].path')
+            if echo "$changed_files" | grep -q "^.github/workflows/"; then
+              echo "Skipping PR #$pr (modifies workflow files)"
+              continue
+            fi
+
             echo "Merging PR #$pr..."
-            gh pr merge $pr --merge --auto || echo "Failed to auto-merge PR #$pr"
+            gh pr merge $pr --merge --delete-branch || echo "Failed to merge PR #$pr"
           done
