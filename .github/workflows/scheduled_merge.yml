@@ -1,28 +1,30 @@
-name: Scheduled Bot PR Merge
+name: Auto-merge Exercism Bot PRs
 
 on:
+  # Schedule to run once a day, e.g., at 00:00 UTC (midnight)
   schedule:
-    # Runs every day at 14:30 UTC, which is 8:00 PM IST.
-    - cron: '30 7 * * *'
-  # Allows you to manually trigger the workflow from the Actions tab
-  workflow_dispatch:
-
+    - cron: '0 0 * * *' 
+  # Allows manual run from the GitHub Actions tab for testing
+  workflow_dispatch: 
+  
 jobs:
-  scheduled-merge:
+  automerge:
     runs-on: ubuntu-latest
     steps:
-      - name: Scheduled Merge Bot PRs
-        uses: ridedott/merge-schedule-action@v1.2.0
-        with:
-          # Your GitHub token (usually the default GITHUB_TOKEN is sufficient)
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # The login name of your bot user
-          author: 'app/exercism-solutions-syncer[bot]' 
-          # The base branch to merge into, e.g., 'main', 'master'
-          base: 'main'
-          # Optional: Labels the PR must have to be considered for merge, e.g., 'automerge'
-          labels: ''
-          # Optional: Merge method: 'merge', 'squash', or 'rebase'
-          merge-method: 'merge'
-          # Optional: Require status checks to pass
-          require-statuses-success: 'true'
+      - name: Auto-merge exercism-solutions-syncer PRs
+        uses: pascalgn/automerge-action@v0.15.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Filter to only PRs created by the exercism solutions syncer bot
+          MERGE_AUTHOR: 'app/exercism-solutions-syncer'
+          # You might want to also filter by label if the bot adds one
+          # MERGE_LABELS: 'automerge-exercism' 
+          
+          # Optional: Select the merge method
+          # MERGE_METHOD: 'squash' # or 'merge', 'rebase'
+          
+          # Optional: Filter for open PRs
+          # PULL_REQUEST_STATE: 'open' 
+          
+          # This should be your main branch (e.g., main, master, development)
+          BASE_BRANCHES: 'main'
