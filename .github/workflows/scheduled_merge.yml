@@ -1,30 +1,41 @@
-name: Auto-merge Exercism Bot PRs
+name: Auto Merge Exercism Syncer PRs
 
 on:
-  # Schedule to run once a day, e.g., at 00:00 UTC (midnight)
   schedule:
-    - cron: '0 0 * * *' 
-  # Allows manual run from the GitHub Actions tab for testing
-  workflow_dispatch: 
-  
+    # Runs every day at 23:00 UTC (adjust as needed)
+    - cron: "0 23 * * *"
+  workflow_dispatch: # allows manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  automerge:
+  auto-merge:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Auto-merge exercism-solutions-syncer PRs
-        uses: pascalgn/automerge-action@v0.15.0
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
+        with:
+          version: latest
+
+      - name: Merge PRs opened by exercism-solutions-syncer bot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Filter to only PRs created by the exercism solutions syncer bot
-          MERGE_AUTHOR: 'app/exercism-solutions-syncer'
-          # You might want to also filter by label if the bot adds one
-          # MERGE_LABELS: 'automerge-exercism' 
-          
-          # Optional: Select the merge method
-          # MERGE_METHOD: 'squash' # or 'merge', 'rebase'
-          
-          # Optional: Filter for open PRs
-          # PULL_REQUEST_STATE: 'open' 
-          
-          # This should be your main branch (e.g., main, master, development)
-          BASE_BRANCHES: 'main'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching open PRs created by app/exercism-solutions-syncer..."
+          prs=$(gh pr list --state open --json number,author,headRefName | jq -r '.[] | select(.author.login=="app/exercism-solutions-syncer") | .number')
+
+          if [ -z "$prs" ]; then
+            echo "No open PRs from exercism-solutions-syncer."
+            exit 0
+          fi
+
+          for pr in $prs; do
+            echo "Attempting to merge PR #$pr..."
+            gh pr merge $pr --merge --auto || echo "Failed to auto-merge PR #$pr"
+          done
