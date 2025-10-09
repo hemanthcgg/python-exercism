@@ -1,0 +1,28 @@
+name: Scheduled Bot PR Merge
+
+on:
+  schedule:
+    # Runs every day at 14:30 UTC, which is 8:00 PM IST.
+    - cron: '30 7 * * *'
+  # Allows you to manually trigger the workflow from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  scheduled-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scheduled Merge Bot PRs
+        uses: ridedott/merge-schedule-action@v1.2.0
+        with:
+          # Your GitHub token (usually the default GITHUB_TOKEN is sufficient)
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # The login name of your bot user
+          author: 'app/exercism-solutions-syncer[bot]' 
+          # The base branch to merge into, e.g., 'main', 'master'
+          base: 'main'
+          # Optional: Labels the PR must have to be considered for merge, e.g., 'automerge'
+          labels: ''
+          # Optional: Merge method: 'merge', 'squash', or 'rebase'
+          merge-method: 'merge'
+          # Optional: Require status checks to pass
+          require-statuses-success: 'true'
